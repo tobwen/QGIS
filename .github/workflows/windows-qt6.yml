@@ -61,6 +61,9 @@ jobs:
         run: |
           ccache --set-config sloppiness=pch_defines,time_macros,include_file_mtime,include_file_ctime
 
+      - name: 🎡 Setup vcpkg
+        uses: ./.github/actions/setup-vcpkg
+
       - name: 📦 Download pre-built SDK from upstream
         shell: bash
         env:
@@ -71,29 +74,27 @@ jobs:
           echo "Downloading artifact $ARTIFACT_ID..."
           gh api "repos/qgis/QGIS/actions/artifacts/$ARTIFACT_ID/zip" > /tmp/sdk.zip
           mkdir -p /tmp/sdk && cd /tmp/sdk
-          echo "Extracting top-level zip..."
+          echo "Extracting SDK..."
           7z x /tmp/sdk.zip -o/tmp/sdk -y > /dev/null
-          ls -la /tmp/sdk/
           INNER_ZIP=$(find /tmp/sdk -name "vcpkg-export-*.zip" -type f | head -1)
           if [ -n "$INNER_ZIP" ]; then
-            echo "Extracting inner vcpkg export zip..."
             INNER_DIR="${INNER_ZIP%.zip}"
             mkdir -p "$INNER_DIR"
             7z x "$INNER_ZIP" -o"$INNER_DIR" -y > /dev/null
             SDK_DIR="$INNER_DIR"
           else
-            SDK_DIR=$(find /tmp/sdk -maxdepth 2 -name "scripts" -type d | head -1)
+            SDK_DIR=$(find /tmp/sdk -maxdepth 2 -name "installed" -type d | head -1)
             if [ -n "$SDK_DIR" ]; then SDK_DIR=$(dirname "$SDK_DIR"); fi
           fi
           if [ -z "$SDK_DIR" ]; then
             echo "ERROR: could not find SDK directory"
             exit 1
           fi
-          SDK_PATH=$(cygpath -w "$(cd "$SDK_DIR" && pwd)")
+          if [ -d "$VCPKG_ROOT/scripts" ]; then
+            cp -r "$VCPKG_ROOT/scripts" "$SDK_DIR/scripts"
+          fi
+          SDK_PATH="$(cd "$SDK_DIR" && cygpath -w "$PWD")"
           echo "SDK_PATH=$SDK_PATH" >> $GITHUB_ENV
-          echo "SDK dir: $SDK_PATH"
-          echo "SDK_PATH=$SDK_PATH" >> $GITHUB_ENV
-          echo "SDK dir: $SDK_PATH"
 
       - name: 🌱 Generate project files
         shell: bash
