@@ -94,7 +94,7 @@ jobs:
             cp -r "$VCPKG_ROOT/scripts" "$SDK_DIR/scripts"
             touch "$SDK_DIR/.vcpkg-root"
           fi
-          SDK_PATH="$(cd "$SDK_DIR" && cygpath -w "$PWD")"
+          SDK_PATH="$(cd "$SDK_DIR" && cygpath -m "$PWD")"
           echo "SDK_PATH=$SDK_PATH" >> $GITHUB_ENV
 
       - name: 🌱 Generate project files
@@ -102,7 +102,7 @@ jobs:
         run: |
           BUILD_DIR=$( cygpath "${{ github.workspace }}/build" )
           SOURCE_DIR=$( cygpath "${{ github.workspace }}" )
-
+          rm -rf "$BUILD_DIR"
           cmake -S "${SOURCE_DIR}" \
                 -B "${BUILD_DIR}" \
                 -G Ninja \
