@@ -73,32 +73,30 @@ jobs:
           ARTIFACT_ID=$(gh api repos/qgis/QGIS/actions/artifacts?name=qgis-sdk-x64-windows --jq '.artifacts[0].id')
           echo "Downloading artifact $ARTIFACT_ID..."
           gh api "repos/qgis/QGIS/actions/artifacts/$ARTIFACT_ID/zip" > /tmp/sdk.zip
-          mkdir -p /tmp/sdk && cd /tmp/sdk
-          echo "Extracting SDK..."
+          cd /tmp && rm -rf sdk && mkdir sdk
+          echo "Extracting outer zip..."
           7z x /tmp/sdk.zip -o/tmp/sdk -y > /dev/null
-          INNER_ZIP=$(find /tmp/sdk -name "vcpkg-export-*.zip" -type f | head -1)
-          if [ -n "$INNER_ZIP" ]; then
-            INNER_DIR="${INNER_ZIP%.zip}"
-            mkdir -p "$INNER_DIR"
-            7z x "$INNER_ZIP" -o"$INNER_DIR" -y > /dev/null
-            SDK_DIR="$INNER_DIR"
-          else
-            SDK_DIR=$(find /tmp/sdk -maxdepth 2 -name "installed" -type d | head -1)
-            if [ -n "$SDK_DIR" ]; then SDK_DIR=$(dirname "$SDK_DIR"); fi
-          fi
-          if [ -z "$SDK_DIR" ]; then
-            echo "ERROR: could not find SDK directory"
+          # Find inner vcpkg export zip
+          INNER=$(find /tmp/sdk -name "vcpkg-export-*.zip" -type f | head -1)
+          if [ -z "$INNER" ]; then
+            echo "ERROR: vcpkg export zip not found"
             exit 1
           fi
-          SDK_PATH="$(cd "$SDK_DIR" && cygpath -m "$PWD")"
-          echo "SDK_PATH=$SDK_PATH" >> $GITHUB_ENV
-
-          # Show full SDK structure for debugging
-          echo "=== SDK structure ==="
-          ls -la "$SDK_PATH/"
-          echo "---"
-          ls "$SDK_PATH/installed/" 2>/dev/null || echo "no installed dir"
-          ls "$SDK_PATH/installed/x64-windows-release/share/" 2>/dev/null | head -30 || echo "no share dir"
+          # Extract inner zip to a temp location
+          TMPDIR=$(mktemp -d)
+          7z x "$INNER" -o"$TMPDIR" -y > /dev/null
+          # Find installed/ directory (may be nested under a top-level dir)
+          INSTALLED_DIR=$(find "$TMPDIR" -maxdepth 3 -name "installed" -type d | head -1)
+          if [ -z "$INSTALLED_DIR" ]; then
+            echo "ERROR: installed/ not found in SDK"
+            exit 1
+          fi
+          SDK_ROOT=$(dirname "$INSTALLED_DIR")
+          SDK_ROOT="$(cd "$SDK_ROOT" && cygpath -m "$PWD")"
+          echo "SDK_ROOT=$SDK_ROOT" >> $GITHUB_ENV
+          echo "SDK root: $SDK_ROOT"
+          echo "SDK triplets:"
+          ls "$SDK_ROOT/installed/" 2>/dev/null
 
       - name: 🌱 Generate project files
         shell: bash
@@ -110,7 +108,7 @@ jobs:
                 -B "${BUILD_DIR}" \
                 -G Ninja \
                 -D CMAKE_BUILD_TYPE=Release \
-                -D CMAKE_PREFIX_PATH="${{ env.SDK_PATH }}/installed/x64-windows-release" \
+                -D CMAKE_PREFIX_PATH="${{ env.SDK_ROOT }}/installed/x64-windows-release" \
                 -D VCPKG_TARGET_TRIPLET=x64-windows-release \
                 -D VCPKG_HOST_TRIPLET=x64-windows-release \
                 -D CREATE_ZIP=ON \
