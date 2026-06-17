@@ -3208,10 +3208,14 @@ const QList<QSslCertificate> QgsAuthManager::databaseCAs()
 
 const QMap<QString, QSslCertificate> QgsAuthManager::mappedDatabaseCAs()
 {
+#ifdef HAVE_AUTH
   ensureInitialized();
 
   QMutexLocker locker( mMutex.get() );
   return QgsAuthCertUtils::mapDigestToCerts( databaseCAs() );
+#else
+  return QMap<QString, QSslCertificate>();
+#endif
 }
 
 bool QgsAuthManager::rebuildCaCertsCache()
