@@ -41,18 +41,6 @@ jobs:
       - name: 🧽 Developer Command Prompt for Microsoft Visual C++
         uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 #v1
 
-      - name: 🎡 Setup vcpkg
-        uses: ./.github/actions/setup-vcpkg
-
-      - name: 💾 Cache vcpkg binaries
-        uses: actions/cache@v4
-        with:
-          path: |
-            build/vcpkg_installed
-          key: vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg/vcpkg.json') }}
-          restore-keys: |
-            vcpkg-${{ runner.os }}-
-
       - name: 🦬 Setup flex/bison
         uses: robinraju/release-downloader@daf26c55d821e836577a15f77d86ddc078948b05 #v1.12
         with:
@@ -73,10 +61,23 @@ jobs:
         run: |
           ccache --set-config sloppiness=pch_defines,time_macros,include_file_mtime,include_file_ctime
 
-      - name: 🌱 Install dependencies and generate project files
+      - name: 📦 Download pre-built SDK from upstream
         shell: bash
         env:
-          X_VCPKG_ASSET_SOURCES: x-azurl,https://assetcache.open-vcpkg.org/assetcache,,read
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Fetching latest SDK artifact..."
+          ARTIFACT_ID=$(gh api repos/qgis/QGIS/actions/artifacts?name=qgis-sdk-x64-windows --jq '.artifacts[0].id')
+          echo "Downloading artifact $ARTIFACT_ID..."
+          gh api "repos/qgis/QGIS/actions/artifacts/$ARTIFACT_ID/zip" --output /tmp/sdk.zip
+          echo "Extracting SDK..."
+          unzip -q /tmp/sdk.zip -d /tmp/sdk
+          SDK_DIR=$(find /tmp/sdk -maxdepth 2 -type d -name "vcpkg-export-*" | head -1)
+          echo "SDK_PATH=$SDK_DIR" >> $GITHUB_ENV
+          echo "SDK dir: $SDK_DIR"
+
+      - name: 🌱 Generate project files
+        shell: bash
         run: |
           BUILD_DIR=$( cygpath "${{ github.workspace }}/build" )
           SOURCE_DIR=$( cygpath "${{ github.workspace }}" )
@@ -85,8 +86,7 @@ jobs:
                 -B "${BUILD_DIR}" \
                 -G Ninja \
                 -D CMAKE_BUILD_TYPE=Release \
-                -D WITH_VCPKG=ON \
-                -D VCPKG_MANIFEST_NO_DEFAULT_FEATURES=ON \
+                -D SDK_PATH="${{ env.SDK_PATH }}" \
                 -D VCPKG_TARGET_TRIPLET=x64-windows-release \
                 -D VCPKG_HOST_TRIPLET=x64-windows-release \
                 -D CREATE_ZIP=ON \
@@ -117,10 +117,7 @@ jobs:
                 -D ENABLE_UNITY_BUILDS=OFF \
                 -D USE_CCACHE=ON \
                 -D FLEX_EXECUTABLE="${SOURCE_DIR}/win_flex.exe" \
-                -D BISON_EXECUTABLE="${SOURCE_DIR}/win_bison.exe" \
-                -D VCPKG_INSTALL_OPTIONS="--x-buildtrees-root=C:/src" \
-                -D NUGET_USERNAME=${{ github.actor }} \
-                -D NUGET_TOKEN=${{ secrets.GITHUB_TOKEN }}
+                -D BISON_EXECUTABLE="${SOURCE_DIR}/win_bison.exe"
 
       - name: 🌋 Build
         shell: bash
@@ -156,5 +153,5 @@ jobs:
           body: |
             ### 🪟 Windows Qt6 builds
             Download [Windows Qt6 builds of this PR for testing](${{ steps.artifact-win64-qt6.outputs.artifact-url }}).
-            *(Built from commit ${{ github.event.pull_request.head.sha }})*
+            *(Built from commit ${{ github.event.pull_request.head.sa }})*
           pr: ${{ github.event.number }}
