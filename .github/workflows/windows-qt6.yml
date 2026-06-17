@@ -70,26 +70,28 @@ jobs:
           ARTIFACT_ID=$(gh api repos/qgis/QGIS/actions/artifacts?name=qgis-sdk-x64-windows --jq '.artifacts[0].id')
           echo "Downloading artifact $ARTIFACT_ID..."
           gh api "repos/qgis/QGIS/actions/artifacts/$ARTIFACT_ID/zip" > /tmp/sdk.zip
-          echo "Extracting SDK..."
+          mkdir -p /tmp/sdk && cd /tmp/sdk
+          echo "Extracting top-level zip..."
           7z x /tmp/sdk.zip -o/tmp/sdk -y > /dev/null
-          echo "SDK extracted contents:"
           ls -la /tmp/sdk/
-          echo "---"
-          SDK_DIR=$(ls -d /tmp/sdk/*/ 2>/dev/null | head -1)
-          if [ -z "$SDK_DIR" ]; then
-            SDK_DIR=$(find /tmp/sdk -maxdepth 2 -name "scripts" -type d 2>/dev/null | head -1)
-            if [ -n "$SDK_DIR" ]; then
-              SDK_DIR=$(dirname "$SDK_DIR")
-            fi
-          fi
-          if [ -n "$SDK_DIR" ]; then
-            SDK_PATH=$(cygpath -w "$SDK_DIR")
-            echo "SDK_PATH=$SDK_PATH" >> $GITHUB_ENV
-            echo "SDK dir: $SDK_PATH"
+          INNER_ZIP=$(find /tmp/sdk -name "vcpkg-export-*.zip" -type f | head -1)
+          if [ -n "$INNER_ZIP" ]; then
+            echo "Extracting inner vcpkg export zip..."
+            INNER_DIR="${INNER_ZIP%.zip}"
+            mkdir -p "$INNER_DIR"
+            7z x "$INNER_ZIP" -o"$INNER_DIR" -y > /dev/null
+            SDK_DIR="$INNER_DIR"
           else
+            SDK_DIR=$(find /tmp/sdk -maxdepth 2 -name "scripts" -type d | head -1)
+            if [ -n "$SDK_DIR" ]; then SDK_DIR=$(dirname "$SDK_DIR"); fi
+          fi
+          if [ -z "$SDK_DIR" ]; then
             echo "ERROR: could not find SDK directory"
             exit 1
           fi
+          SDK_PATH=$(cygpath -w "$(cd "$SDK_DIR" && pwd)")
+          echo "SDK_PATH=$SDK_PATH" >> $GITHUB_ENV
+          echo "SDK dir: $SDK_PATH"
           echo "SDK_PATH=$SDK_PATH" >> $GITHUB_ENV
           echo "SDK dir: $SDK_PATH"
 
