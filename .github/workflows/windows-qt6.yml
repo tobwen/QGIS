@@ -110,15 +110,14 @@ jobs:
                 -G Ninja \
                 -D CMAKE_BUILD_TYPE=Release \
                 -D CMAKE_PREFIX_PATH="${{ env.SDK_ROOT }}/installed/x64-windows-release" \
-                -D VCPKG_TARGET_TRIPLET=x64-windows-release \
-                -D VCPKG_HOST_TRIPLET=x64-windows-release \
                 -D CREATE_ZIP=ON \
                 -D WITH_VCPKG=OFF \
                 -D WITH_DESKTOP=ON \
                 -D WITH_QTWEBENGINE=OFF \
                 -D WITH_3D=OFF \
-                -D WITH_AUTH=OFF \
+                -D WITH_PYTHON=OFF \
                 -D WITH_BINDINGS=OFF \
+                -D WITH_AUTH=OFF \
                 -D WITH_EXIV2=OFF \
                 -D WITH_PDAL=OFF \
                 -D WITH_QTPOSITIONING=OFF \
