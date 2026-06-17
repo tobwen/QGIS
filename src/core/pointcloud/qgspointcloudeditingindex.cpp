@@ -16,9 +16,11 @@
 #include "qgspointcloudeditingindex.h"
 
 #include "qgscoordinatereferencesystem.h"
+#ifdef WITH_COPC
 #include "qgscopcpointcloudindex.h"
 #include "qgscopcupdate.h"
 #include "qgslazdecoder.h"
+#endif
 #include "qgspointcloudlayer.h"
 #include "qgspointcloudlayereditutils.h"
 
@@ -112,6 +114,7 @@ std::unique_ptr< QgsPointCloudBlock > QgsPointCloudEditingIndex::nodeData( QgsPo
 
     QgsRectangle filterRect = request.filterRect();
 
+#ifdef WITH_COPC
     QByteArray rawBlockData = mEditedNodeData[n];
     mEditedNodeDataMutex.unlock();
 
@@ -120,6 +123,10 @@ std::unique_ptr< QgsPointCloudBlock > QgsPointCloudEditingIndex::nodeData( QgsPo
     int pointCount = copcIndex->mHierarchy.value( n );
 
     return QgsLazDecoder::decompressCopc( rawBlockData, *copcIndex->mLazInfo.get(), pointCount, requestAttributes, filterExpression, filterRect );
+#else
+    mEditedNodeDataMutex.unlock();
+    return mIndex.nodeData( n, request );
+#endif
   }
   else
   {
@@ -155,6 +162,7 @@ void QgsPointCloudEditingIndex::resetNodeEdits( QgsPointCloudNodeId n )
 
 bool QgsPointCloudEditingIndex::commitChanges( QString *errorMessage )
 {
+#ifdef WITH_COPC
   QMutexLocker locker( &mEditedNodeDataMutex );
 
   if ( mEditedNodeData.isEmpty() )
@@ -213,6 +221,10 @@ bool QgsPointCloudEditingIndex::commitChanges( QString *errorMessage )
   copcIndex->load( mUri );
 
   return true;
+#else
+  Q_UNUSED( errorMessage )
+  return false;
+#endif
 }
 
 bool QgsPointCloudEditingIndex::isModified() const
