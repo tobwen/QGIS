@@ -72,8 +72,24 @@ jobs:
           gh api "repos/qgis/QGIS/actions/artifacts/$ARTIFACT_ID/zip" > /tmp/sdk.zip
           echo "Extracting SDK..."
           7z x /tmp/sdk.zip -o/tmp/sdk -y > /dev/null
-          SDK_DIR=$(find /tmp/sdk -maxdepth 2 -type d -path "*/vcpkg-export-*" | head -1)
-          SDK_PATH=$(cygpath "$SDK_DIR")
+          echo "SDK extracted contents:"
+          ls -la /tmp/sdk/
+          echo "---"
+          SDK_DIR=$(ls -d /tmp/sdk/*/ 2>/dev/null | head -1)
+          if [ -z "$SDK_DIR" ]; then
+            SDK_DIR=$(find /tmp/sdk -maxdepth 2 -name "scripts" -type d 2>/dev/null | head -1)
+            if [ -n "$SDK_DIR" ]; then
+              SDK_DIR=$(dirname "$SDK_DIR")
+            fi
+          fi
+          if [ -n "$SDK_DIR" ]; then
+            SDK_PATH=$(cygpath -w "$SDK_DIR")
+            echo "SDK_PATH=$SDK_PATH" >> $GITHUB_ENV
+            echo "SDK dir: $SDK_PATH"
+          else
+            echo "ERROR: could not find SDK directory"
+            exit 1
+          fi
           echo "SDK_PATH=$SDK_PATH" >> $GITHUB_ENV
           echo "SDK dir: $SDK_PATH"
 
