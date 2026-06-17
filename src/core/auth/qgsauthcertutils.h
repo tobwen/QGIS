@@ -86,8 +86,6 @@ class CORE_EXPORT QgsAuthCertUtils
       ExtendedKeyUsage = 1
     };
 
-#ifdef HAVE_AUTH
-
     //! SSL Protocol name strings per enum
     static QString getSslProtocolName( QSsl::SslProtocol protocol );
 
@@ -375,7 +373,6 @@ class CORE_EXPORT QgsAuthCertUtils
     static void appendDirSegment_( QStringList &dirname, const QString &segment, QString value );
 
     static QSsl::EncodingFormat sniffEncoding( const QByteArray &payload );
-#endif
 };
 
 #endif // QGSAUTHCERTUTILS_H
