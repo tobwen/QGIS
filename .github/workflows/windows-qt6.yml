@@ -92,6 +92,7 @@ jobs:
           fi
           if [ -d "$VCPKG_ROOT/scripts" ]; then
             cp -r "$VCPKG_ROOT/scripts" "$SDK_DIR/scripts"
+            touch "$SDK_DIR/.vcpkg-root"
           fi
           SDK_PATH="$(cd "$SDK_DIR" && cygpath -w "$PWD")"
           echo "SDK_PATH=$SDK_PATH" >> $GITHUB_ENV
