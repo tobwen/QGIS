@@ -108,6 +108,7 @@ jobs:
                 -G Ninja \
                 -D CMAKE_BUILD_TYPE=Release \
                 -D SDK_PATH="${{ env.SDK_PATH }}" \
+                -D PROJ_DIR="${{ env.SDK_PATH }}/installed/x64-windows-release/share/proj" \
                 -D VCPKG_TARGET_TRIPLET=x64-windows-release \
                 -D VCPKG_HOST_TRIPLET=x64-windows-release \
                 -D CREATE_ZIP=ON \
