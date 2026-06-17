@@ -83,7 +83,8 @@ jobs:
             exit 1
           fi
           # Extract inner zip to a temp location
-          TMPDIR=$(mktemp -d)
+          TMPDIR=/tmp/sdk-inner-$RANDOM
+          mkdir -p "$TMPDIR"
           7z x "$INNER" -o"$TMPDIR" -y > /dev/null
           # Find installed/ directory (may be nested under a top-level dir)
           INSTALLED_DIR=$(find "$TMPDIR" -maxdepth 3 -name "installed" -type d | head -1)
