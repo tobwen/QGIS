@@ -240,7 +240,9 @@ class CORE_EXPORT QgsAuthCertUtils
      * \param issuer Whether to return cert's subject or issuer combined name
      * \note not available in Python bindings
      */
+#ifdef HAVE_AUTH
     static QString getCertDistinguishedName( const QSslCertificate &qcert, const QCA::Certificate &acert = QCA::Certificate(), bool issuer = false ) SIP_SKIP;
+#endif
 
     //! Gets the general name for certificate trust
     static QString getCertTrustName( QgsAuthCertUtils::CertTrustPolicy trust );
@@ -255,6 +257,7 @@ class CORE_EXPORT QgsAuthCertUtils
      */
     static QString shaHexForCert( const QSslCertificate &cert, bool formatted = false );
 
+#ifdef HAVE_AUTH
     /**
      * Convert a QSslCertificate to a QCA::Certificate.
      * \note not available in Python bindings
@@ -290,6 +293,7 @@ class CORE_EXPORT QgsAuthCertUtils
      * \note not available in Python bindings
      */
     static QString qcaKnownConstraint( QCA::ConstraintTypeKnown constraint ) SIP_SKIP;
+#endif
 
     /**
      * Certificate usage type strings per enum

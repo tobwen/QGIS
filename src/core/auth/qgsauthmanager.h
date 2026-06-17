@@ -1065,7 +1065,9 @@ class CORE_EXPORT QgsAuthManager : public QObject
     QString mPasswordHelperErrorMessage;
 
     //! Store last error code (enum)
+#ifdef HAVE_AUTH
     QKeychain::Error mPasswordHelperErrorCode = QKeychain::NoError;
+#endif
 
     //! Enable logging
     bool mPasswordHelperLoggingEnabled = false;
