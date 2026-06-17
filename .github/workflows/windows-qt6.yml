@@ -69,12 +69,13 @@ jobs:
           echo "Fetching latest SDK artifact..."
           ARTIFACT_ID=$(gh api repos/qgis/QGIS/actions/artifacts?name=qgis-sdk-x64-windows --jq '.artifacts[0].id')
           echo "Downloading artifact $ARTIFACT_ID..."
-          gh api "repos/qgis/QGIS/actions/artifacts/$ARTIFACT_ID/zip" --output /tmp/sdk.zip
+          gh api "repos/qgis/QGIS/actions/artifacts/$ARTIFACT_ID/zip" > /tmp/sdk.zip
           echo "Extracting SDK..."
-          unzip -q /tmp/sdk.zip -d /tmp/sdk
-          SDK_DIR=$(find /tmp/sdk -maxdepth 2 -type d -name "vcpkg-export-*" | head -1)
-          echo "SDK_PATH=$SDK_DIR" >> $GITHUB_ENV
-          echo "SDK dir: $SDK_DIR"
+          7z x /tmp/sdk.zip -o/tmp/sdk -y > /dev/null
+          SDK_DIR=$(find /tmp/sdk -maxdepth 2 -type d -path "*/vcpkg-export-*" | head -1)
+          SDK_PATH=$(cygpath "$SDK_DIR")
+          echo "SDK_PATH=$SDK_PATH" >> $GITHUB_ENV
+          echo "SDK dir: $SDK_PATH"
 
       - name: 🌱 Generate project files
         shell: bash
