@@ -347,7 +347,11 @@ QNetworkReply *QgsNetworkAccessManager::createRequest( QNetworkAccessManager::Op
     QgsDebugMsgLevel( u"Adding trusted CA certs to request"_s, 3 );
     QSslConfiguration sslconfig( modifiedRequest.sslConfiguration() );
     // Merge trusted CAs with any additional CAs added by the authentication methods
+#ifdef HAVE_AUTH
     sslconfig.setCaCertificates( QgsAuthCertUtils::casMerge( QgsApplication::authManager()->trustedCaCertsCache(), sslconfig.caCertificates() ) );
+#else
+    sslconfig.setCaCertificates( sslconfig.caCertificates() );
+#endif
     // check for SSL cert custom config
     const QString hostport( u"%1:%2"_s.arg( modifiedRequest.url().host().trimmed() ).arg( modifiedRequest.url().port() != -1 ? modifiedRequest.url().port() : 443 ) );
     const QgsAuthConfigSslServer servconfig = QgsApplication::authManager()->sslCertCustomConfigByHost( hostport.trimmed() );
