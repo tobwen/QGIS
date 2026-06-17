@@ -90,12 +90,15 @@ jobs:
             echo "ERROR: could not find SDK directory"
             exit 1
           fi
-          if [ -d "$VCPKG_ROOT/scripts" ]; then
-            cp -r "$VCPKG_ROOT/scripts" "$SDK_DIR/scripts"
-            touch "$SDK_DIR/.vcpkg-root"
-          fi
           SDK_PATH="$(cd "$SDK_DIR" && cygpath -m "$PWD")"
           echo "SDK_PATH=$SDK_PATH" >> $GITHUB_ENV
+
+          # Show full SDK structure for debugging
+          echo "=== SDK structure ==="
+          ls -la "$SDK_PATH/"
+          echo "---"
+          ls "$SDK_PATH/installed/" 2>/dev/null || echo "no installed dir"
+          ls "$SDK_PATH/installed/x64-windows-release/share/" 2>/dev/null | head -30 || echo "no share dir"
 
       - name: 🌱 Generate project files
         shell: bash
@@ -107,11 +110,11 @@ jobs:
                 -B "${BUILD_DIR}" \
                 -G Ninja \
                 -D CMAKE_BUILD_TYPE=Release \
-                -D SDK_PATH="${{ env.SDK_PATH }}" \
-                -D PROJ_DIR="${{ env.SDK_PATH }}/installed/x64-windows-release/share/proj" \
+                -D CMAKE_PREFIX_PATH="${{ env.SDK_PATH }}/installed/x64-windows-release" \
                 -D VCPKG_TARGET_TRIPLET=x64-windows-release \
                 -D VCPKG_HOST_TRIPLET=x64-windows-release \
                 -D CREATE_ZIP=ON \
+                -D WITH_VCPKG=OFF \
                 -D WITH_DESKTOP=ON \
                 -D WITH_QTWEBENGINE=OFF \
                 -D WITH_3D=OFF \
