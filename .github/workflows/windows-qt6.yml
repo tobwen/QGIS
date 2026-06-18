@@ -121,7 +121,7 @@ jobs:
                 -D WITH_QGIS_PROCESS=OFF \
                 -D WITH_POSTGRESQL=OFF \
                 -D WITH_SPATIALITE=OFF \
-                -D WITH_EPT=OFF \
+                -D WITH_EPT=ON \
                 -D WITH_COPC=ON \
                 -D WITH_DRACO=OFF \
                 -D WITH_QUICK=OFF \
