@@ -54,7 +54,7 @@ jobs:
         with:
           max-size: 1G
           key: build-ccache-win64-qt6-minimal-${{ github.event.pull_request.base.ref || github.ref_name }}
-          save: ${{ github.event_name == 'push' }}
+          save: true
 
       - name: 🛍️ Tune ccache configuration
         shell: bash
