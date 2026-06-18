@@ -114,7 +114,7 @@ jobs:
                 -D WITH_3D=OFF \
                 -D WITH_PYTHON=OFF \
                 -D WITH_BINDINGS=OFF \
-                -D WITH_AUTH=OFF \
+                -D WITH_AUTH=ON \
                 -D WITH_EXIV2=OFF \
                 -D WITH_PDAL=OFF \
                 -D WITH_QTPOSITIONING=OFF \
