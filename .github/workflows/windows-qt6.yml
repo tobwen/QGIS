@@ -41,18 +41,6 @@ jobs:
       - name: 🧽 Developer Command Prompt for Microsoft Visual C++
         uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 #v1
 
-      - name: 🎡 Setup vcpkg
-        uses: ./.github/actions/setup-vcpkg
-
-      - name: 💾 Cache vcpkg binaries
-        uses: actions/cache@v4
-        with:
-          path: |
-            build/vcpkg_installed
-          key: vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg/vcpkg.json') }}
-          restore-keys: |
-            vcpkg-${{ runner.os }}-
-
       - name: 🦬 Setup flex/bison
         uses: robinraju/release-downloader@daf26c55d821e836577a15f77d86ddc078948b05 #v1.12
         with:
@@ -73,28 +61,60 @@ jobs:
         run: |
           ccache --set-config sloppiness=pch_defines,time_macros,include_file_mtime,include_file_ctime
 
-      - name: 🌱 Install dependencies and generate project files
+      - name: 📦 Download pre-built SDK from upstream
         shell: bash
         env:
-          X_VCPKG_ASSET_SOURCES: x-azurl,https://assetcache.open-vcpkg.org/assetcache,,read
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Fetching latest SDK artifact..."
+          ARTIFACT_ID=$(gh api repos/qgis/QGIS/actions/artifacts?name=qgis-sdk-x64-windows --jq '.artifacts[0].id')
+          echo "Downloading artifact $ARTIFACT_ID..."
+          gh api "repos/qgis/QGIS/actions/artifacts/$ARTIFACT_ID/zip" > /tmp/sdk.zip
+          cd /tmp && rm -rf sdk && mkdir sdk
+          echo "Extracting outer zip..."
+          7z x /tmp/sdk.zip -o/tmp/sdk -y > /dev/null
+          # Find inner vcpkg export zip
+          INNER=$(find /tmp/sdk -name "vcpkg-export-*.zip" -type f | head -1)
+          if [ -z "$INNER" ]; then
+            echo "ERROR: vcpkg export zip not found"
+            exit 1
+          fi
+          # Extract inner zip to a temp location
+          TMPDIR=/tmp/sdk-inner-$RANDOM
+          mkdir -p "$TMPDIR"
+          7z x "$INNER" -o"$TMPDIR" -y > /dev/null
+          # Find installed/ directory (may be nested under a top-level dir)
+          INSTALLED_DIR=$(find "$TMPDIR" -maxdepth 3 -name "installed" -type d | head -1)
+          if [ -z "$INSTALLED_DIR" ]; then
+            echo "ERROR: installed/ not found in SDK"
+            exit 1
+          fi
+          SDK_ROOT=$(dirname "$INSTALLED_DIR")
+          SDK_ROOT="$(cd "$SDK_ROOT" && cygpath -m "$PWD")"
+          echo "SDK_ROOT=$SDK_ROOT" >> $GITHUB_ENV
+          echo "SDK root: $SDK_ROOT"
+          echo "SDK triplets:"
+          ls "$SDK_ROOT/installed/" 2>/dev/null
+
+      - name: 🌱 Generate project files
+        shell: bash
         run: |
           BUILD_DIR=$( cygpath "${{ github.workspace }}/build" )
           SOURCE_DIR=$( cygpath "${{ github.workspace }}" )
-
+          rm -rf "$BUILD_DIR"
           cmake -S "${SOURCE_DIR}" \
                 -B "${BUILD_DIR}" \
                 -G Ninja \
                 -D CMAKE_BUILD_TYPE=Release \
-                -D WITH_VCPKG=ON \
-                -D VCPKG_MANIFEST_NO_DEFAULT_FEATURES=ON \
-                -D VCPKG_TARGET_TRIPLET=x64-windows-release \
-                -D VCPKG_HOST_TRIPLET=x64-windows-release \
+                -D CMAKE_PREFIX_PATH="${{ env.SDK_ROOT }}/installed/x64-windows-release" \
                 -D CREATE_ZIP=ON \
+                -D WITH_VCPKG=OFF \
                 -D WITH_DESKTOP=ON \
                 -D WITH_QTWEBENGINE=OFF \
                 -D WITH_3D=OFF \
-                -D WITH_AUTH=OFF \
+                -D WITH_PYTHON=OFF \
                 -D WITH_BINDINGS=OFF \
+                -D WITH_AUTH=OFF \
                 -D WITH_EXIV2=OFF \
                 -D WITH_PDAL=OFF \
                 -D WITH_QTPOSITIONING=OFF \
@@ -117,10 +137,7 @@ jobs:
                 -D ENABLE_UNITY_BUILDS=OFF \
                 -D USE_CCACHE=ON \
                 -D FLEX_EXECUTABLE="${SOURCE_DIR}/win_flex.exe" \
-                -D BISON_EXECUTABLE="${SOURCE_DIR}/win_bison.exe" \
-                -D VCPKG_INSTALL_OPTIONS="--x-buildtrees-root=C:/src" \
-                -D NUGET_USERNAME=${{ github.actor }} \
-                -D NUGET_TOKEN=${{ secrets.GITHUB_TOKEN }}
+                -D BISON_EXECUTABLE="${SOURCE_DIR}/win_bison.exe"
 
       - name: 🌋 Build
         shell: bash
@@ -156,5 +173,5 @@ jobs:
           body: |
             ### 🪟 Windows Qt6 builds
             Download [Windows Qt6 builds of this PR for testing](${{ steps.artifact-win64-qt6.outputs.artifact-url }}).
-            *(Built from commit ${{ github.event.pull_request.head.sha }})*
+            *(Built from commit ${{ github.event.pull_request.head.sa }})*
           pr: ${{ github.event.number }}
