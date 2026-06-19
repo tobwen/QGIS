@@ -50,9 +50,9 @@ jobs:
           extract: true
 
       - name: 🛍️ Setup ccache
-        uses: hendrikmuhs/ccache-action@63069e3931dedbf3b63792097479563182fe70d1 #v1.2
+        uses: hendrikmuhs/ccache-action@d62db5f07c26379fc4b4e0916f098a92573c3b03 #v1.2
         with:
-          max-size: 1G
+          max-size: 3G
           key: build-ccache-win64-qt6-minimal-${{ github.event.pull_request.base.ref || github.ref_name }}
           save: true
 
@@ -144,10 +144,43 @@ jobs:
         run: |
           cmake --build "${{ github.workspace }}/build" --config Release
 
-      - name: 📦 Package
+      - name: 📦 Install and package
         shell: bash
         run: |
-          cmake --build "${{ github.workspace }}/build" --target bundle --config Release
+          BUILD_DIR=$( cygpath "${{ github.workspace }}/build" )
+          SDK_DIR=$( cygpath "${{ env.SDK_ROOT }}/installed/x64-windows-release" )
+          STAGING="$BUILD_DIR/staging"
+          rm -rf "$STAGING"
+
+          # Install QGIS to staging directory
+          cmake --install "$BUILD_DIR" --prefix "$STAGING"
+
+          # Copy all dependency DLLs from SDK
+          cp "$SDK_DIR"/bin/*.dll "$STAGING/bin/"
+
+          # Copy Qt6 plugins
+          cp -r "$SDK_DIR/Qt6/" "$STAGING/bin/Qt6/"
+
+          # Copy PROJ data
+          mkdir -p "$STAGING/share/proj"
+          cp -r "$SDK_DIR/share/proj/"* "$STAGING/share/proj/"
+
+          # Copy GDAL data
+          mkdir -p "$STAGING/share/gdal"
+          cp -r "$SDK_DIR/share/gdal/"* "$STAGING/share/gdal/"
+
+          # Create qgis.env (absolute paths with Windows backslashes)
+          SDK_DIR_WIN=$(cygpath -w "$SDK_DIR")
+          QGIS_BIN_WIN=$(cygpath -w "$STAGING/bin")
+          echo "PATH=${SDK_DIR_WIN}\\bin;${QGIS_BIN_WIN};C:\\Windows;C:\\Windows\\system32\\WBem" > "$STAGING/bin/qgis.env"
+          echo "PROJ_DATA=${SDK_DIR_WIN}\\share\\proj" >> "$STAGING/bin/qgis.env"
+          echo "GDAL_DATA=${SDK_DIR_WIN}\\share\\gdal" >> "$STAGING/bin/qgis.env"
+          echo "QT_PLUGIN_PATH=${SDK_DIR_WIN}\\Qt6\\plugins;${SDK_DIR_WIN}\\bin\\Qca" >> "$STAGING/bin/qgis.env"
+
+          # Create ZIP
+          cd "$STAGING"
+          7z a -tzip "$BUILD_DIR/qgis-4.0.3-win64.zip" . -r > /dev/null
+          ls -lh "$BUILD_DIR/qgis-4.0.3-win64.zip"
 
       - name: 📑 Upload dep build logs
         uses: actions/upload-artifact@v7
