@@ -129,7 +129,7 @@ jobs:
                 -D WITH_SFCGAL=OFF \
                 -D WITH_ORACLE=OFF \
                 -D WITH_HANA=OFF \
-                -D WITH_GSL=OFF \
+                -D WITH_GSL=ON \
                 -D WITH_CRASH_HANDLER=OFF \
                 -D WITH_SERVER=OFF \
                 -D ENABLE_LOCAL_BUILD_SHORTCUTS=ON \
