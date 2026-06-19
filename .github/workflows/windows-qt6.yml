@@ -133,6 +133,7 @@ jobs:
                 -D WITH_CRASH_HANDLER=OFF \
                 -D WITH_SERVER=OFF \
                 -D ENABLE_LOCAL_BUILD_SHORTCUTS=ON \
+                -D CMAKE_DISABLE_PRECOMPILE_HEADERS=ON \
                 -D ENABLE_TESTS=OFF \
                 -D ENABLE_UNITY_BUILDS=OFF \
                 -D USE_CCACHE=ON \
