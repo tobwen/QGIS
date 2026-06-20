@@ -13,7 +13,6 @@ jobs:
         pch: [ON, OFF]
     steps:
       - uses: actions/checkout@v4
-
       - uses: ilammy/msvc-dev-cmd@v1
 
       - name: 🔧 Setup ccache
@@ -24,70 +23,61 @@ jobs:
           max-size: 1G
           save: true
 
-      - name: Write CMakeLists.txt
+      - name: 📝 Create test project
         shell: bash
         run: |
-          mkdir -p /tmp/t
-          cat > /tmp/t/CMakeLists.txt << 'CMAEOL'
-cmake_minimum_required(VERSION 3.22)
-project(t CXX)
-set(CMAKE_CXX_STANDARD 17)
-set(VERSION_NUM 0 CACHE STRING "version")
-option(USE_CCACHE "ccache" ON)
-if(USE_CCACHE)
-  find_program(CCACHE ccache)
-  if(CCACHE)
-    set(CMAKE_C_COMPILER_LAUNCHER ccache)
-    set(CMAKE_CXX_COMPILER_LAUNCHER ccache)
-  endif()
-endif()
-option(PCH "pch" ON)
-add_executable(t src/a.cpp src/b.cpp src/c.cpp src/d.cpp src/e.cpp src/f.cpp src/g.cpp src/h.cpp src/i.cpp src/j.cpp)
-configure_file(version.h.in ${CMAKE_BINARY_DIR}/version.h)
-target_include_directories(t PRIVATE ${CMAKE_BINARY_DIR})
-if(PCH)
-  target_precompile_headers(t PRIVATE <windows.h>)
-endif()
-CMAEOL
-
           mkdir -p /tmp/t/src
-          cat > /tmp/t/version.h.in << 'VHEOL'
-#pragma once
-#define VERSION_NUM @VERSION_NUM@
-VHEOL
+          echo 'cmake_minimum_required(VERSION 3.22)' > /tmp/t/CMakeLists.txt
+          echo 'project(t CXX)' >> /tmp/t/CMakeLists.txt
+          echo 'set(CMAKE_CXX_STANDARD 17)' >> /tmp/t/CMakeLists.txt
+          echo 'set(VERSION_NUM 0 CACHE STRING "version")' >> /tmp/t/CMakeLists.txt
+          echo 'option(USE_CCACHE "ccache" ON)' >> /tmp/t/CMakeLists.txt
+          echo 'if(USE_CCACHE)' >> /tmp/t/CMakeLists.txt
+          echo '  find_program(CCACHE ccache)' >> /tmp/t/CMakeLists.txt
+          echo '  if(CCACHE)' >> /tmp/t/CMakeLists.txt
+          echo '    set(CMAKE_C_COMPILER_LAUNCHER ccache)' >> /tmp/t/CMakeLists.txt
+          echo '    set(CMAKE_CXX_COMPILER_LAUNCHER ccache)' >> /tmp/t/CMakeLists.txt
+          echo '  endif()' >> /tmp/t/CMakeLists.txt
+          echo 'endif()' >> /tmp/t/CMakeLists.txt
+          echo 'option(PCH "pch" ON)' >> /tmp/t/CMakeLists.txt
+          echo 'add_executable(t src/a.cpp src/b.cpp src/c.cpp src/d.cpp src/e.cpp src/f.cpp src/g.cpp src/h.cpp src/i.cpp src/j.cpp)' >> /tmp/t/CMakeLists.txt
+          echo 'configure_file(version.h.in ${CMAKE_BINARY_DIR}/version.h)' >> /tmp/t/CMakeLists.txt
+          echo 'target_include_directories(t PRIVATE ${CMAKE_BINARY_DIR})' >> /tmp/t/CMakeLists.txt
+          echo 'if(PCH)' >> /tmp/t/CMakeLists.txt
+          echo '  target_precompile_headers(t PRIVATE <windows.h>)' >> /tmp/t/CMakeLists.txt
+          echo 'endif()' >> /tmp/t/CMakeLists.txt
+
+          cat > /tmp/t/version.h.in <<< '#pragma once'
+          echo '#define VERSION_NUM @VERSION_NUM@' >> /tmp/t/version.h.in
 
           for f in a b c d e f g h i j; do
-            cat > /tmp/t/src/${f}.cpp << 'SRCEOL'
-#include "version.h"
-#include <windows.h>
-#include <vector>
-#include <algorithm>
-#include <string>
-#include <sstream>
-#include <iostream>
-#include <map>
-#include <set>
-#include <memory>
-#include <thread>
-#include <mutex>
-#include <chrono>
-#include <regex>
-#include <random>
-#include <numeric>
-#include <functional>
-#include <optional>
-#include <variant>
-#include <filesystem>
-
-int __declspec(noinline) compute(int x) {
-    std::vector<int> v(10000);
-    std::iota(v.begin(), v.end(), 0);
-    std::shuffle(v.begin(), v.end(), std::mt19937(x));
-    std::sort(v.begin(), v.end());
-    auto it = std::unique(v.begin(), v.end());
-    return (int)std::distance(v.begin(), it) + VERSION_NUM;
-}
-SRCEOL
+            cat > /tmp/t/src/${f}.cpp <<< '#include "version.h"'
+            echo '#include <windows.h>' >> /tmp/t/src/${f}.cpp
+            echo '#include <vector>' >> /tmp/t/src/${f}.cpp
+            echo '#include <algorithm>' >> /tmp/t/src/${f}.cpp
+            echo '#include <string>' >> /tmp/t/src/${f}.cpp
+            echo '#include <sstream>' >> /tmp/t/src/${f}.cpp
+            echo '#include <iostream>' >> /tmp/t/src/${f}.cpp
+            echo '#include <map>' >> /tmp/t/src/${f}.cpp
+            echo '#include <set>' >> /tmp/t/src/${f}.cpp
+            echo '#include <memory>' >> /tmp/t/src/${f}.cpp
+            echo '#include <thread>' >> /tmp/t/src/${f}.cpp
+            echo '#include <mutex>' >> /tmp/t/src/${f}.cpp
+            echo '#include <chrono>' >> /tmp/t/src/${f}.cpp
+            echo '#include <regex>' >> /tmp/t/src/${f}.cpp
+            echo '#include <random>' >> /tmp/t/src/${f}.cpp
+            echo '#include <numeric>' >> /tmp/t/src/${f}.cpp
+            echo '#include <functional>' >> /tmp/t/src/${f}.cpp
+            echo '#include <optional>' >> /tmp/t/src/${f}.cpp
+            echo '#include <variant>' >> /tmp/t/src/${f}.cpp
+            echo '#include <filesystem>' >> /tmp/t/src/${f}.cpp
+            echo 'int __declspec(noinline) compute(int x) {' >> /tmp/t/src/${f}.cpp
+            echo '  std::vector<int> v(10000); std::iota(v.begin(), v.end(), 0);' >> /tmp/t/src/${f}.cpp
+            echo '  std::shuffle(v.begin(), v.end(), std::mt19937(x));' >> /tmp/t/src/${f}.cpp
+            echo '  std::sort(v.begin(), v.end());' >> /tmp/t/src/${f}.cpp
+            echo '  auto it = std::unique(v.begin(), v.end());' >> /tmp/t/src/${f}.cpp
+            echo '  return (int)std::distance(v.begin(), it) + VERSION_NUM;' >> /tmp/t/src/${f}.cpp
+            echo '}' >> /tmp/t/src/${f}.cpp
           done
 
       - name: 🟢 Build 1 — cold cache PCH=${{ matrix.pch }}
@@ -95,30 +85,32 @@ SRCEOL
         run: |
           mkdir -p /tmp/t/b1 && cd /tmp/t/b1
           cmake .. -DVERSION_NUM=1 -DPCH=${{ matrix.pch }}
-          cmake --build . --config Release --verbose 2>&1 | tail -5
-          echo "=== BUILD 1 (cold) ==="
+          cmake --build . --config Release 2>&1 | tail -5
+          echo "=== B1 (cold) ==="
           ccache -s -v | grep -E "Hits|Misses|Cacheable|Cache size"
 
       - name: 🟡 Build 2 — same source, warm cache PCH=${{ matrix.pch }}
         shell: bash
         run: |
+          ccache -z
           mkdir -p /tmp/t/b2 && cd /tmp/t/b2
           cmake .. -DVERSION_NUM=1 -DPCH=${{ matrix.pch }}
-          cmake --build . --config Release --verbose 2>&1 | tail -5
-          echo "=== BUILD 2 (warm, same VERSION_NUM) ==="
+          cmake --build . --config Release 2>&1 | tail -5
+          echo "=== B2 (warm, same NUM) ==="
           ccache -s -v | grep -E "Hits|Misses|Cacheable|Cache size"
 
       - name: 🔴 Build 3 — version header changed PCH=${{ matrix.pch }}
         shell: bash
         run: |
+          ccache -z
           mkdir -p /tmp/t/b3 && cd /tmp/t/b3
           cmake .. -DVERSION_NUM=2 -DPCH=${{ matrix.pch }}
-          cmake --build . --config Release --verbose 2>&1 | tail -5
-          echo "=== BUILD 3 (different VERSION_NUM) ==="
+          cmake --build . --config Release 2>&1 | tail -5
+          echo "=== B3 (diff NUM) ==="
           ccache -s -v | grep -E "Hits|Misses|Cacheable|Cache size"
 
       - name: 📊 Final
         shell: bash
         run: |
-          echo "=== CCACHE SUMMARY ==="
-          ccache -s | grep -E "Hits|Misses|Cacheable|Cache size|max cache"
+          echo "=== CCACHE GLOBAL ==="
+          ccache -s
