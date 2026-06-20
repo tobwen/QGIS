@@ -1,0 +1,124 @@
+name: ccache-test
+
+on:
+  push:
+    branches: [ccache-test]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        pch: [ON, OFF]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ilammy/msvc-dev-cmd@v1
+
+      - name: 🔧 Setup ccache
+        uses: hendrikmuhs/ccache-action@d62db5f07c26379fc4b4e0916f098a92573c3b03
+        with:
+          key: test-ccache-${{ matrix.pch }}
+          variant: ccache
+          max-size: 1G
+          save: true
+
+      - name: Write CMakeLists.txt
+        shell: bash
+        run: |
+          mkdir -p /tmp/t
+          cat > /tmp/t/CMakeLists.txt << 'CMAEOL'
+cmake_minimum_required(VERSION 3.22)
+project(t CXX)
+set(CMAKE_CXX_STANDARD 17)
+set(VERSION_NUM 0 CACHE STRING "version")
+option(USE_CCACHE "ccache" ON)
+if(USE_CCACHE)
+  find_program(CCACHE ccache)
+  if(CCACHE)
+    set(CMAKE_C_COMPILER_LAUNCHER ccache)
+    set(CMAKE_CXX_COMPILER_LAUNCHER ccache)
+  endif()
+endif()
+option(PCH "pch" ON)
+add_executable(t src/a.cpp src/b.cpp src/c.cpp src/d.cpp src/e.cpp src/f.cpp src/g.cpp src/h.cpp src/i.cpp src/j.cpp)
+configure_file(version.h.in ${CMAKE_BINARY_DIR}/version.h)
+target_include_directories(t PRIVATE ${CMAKE_BINARY_DIR})
+if(PCH)
+  target_precompile_headers(t PRIVATE <windows.h>)
+endif()
+CMAEOL
+
+          mkdir -p /tmp/t/src
+          cat > /tmp/t/version.h.in << 'VHEOL'
+#pragma once
+#define VERSION_NUM @VERSION_NUM@
+VHEOL
+
+          for f in a b c d e f g h i j; do
+            cat > /tmp/t/src/${f}.cpp << 'SRCEOL'
+#include "version.h"
+#include <windows.h>
+#include <vector>
+#include <algorithm>
+#include <string>
+#include <sstream>
+#include <iostream>
+#include <map>
+#include <set>
+#include <memory>
+#include <thread>
+#include <mutex>
+#include <chrono>
+#include <regex>
+#include <random>
+#include <numeric>
+#include <functional>
+#include <optional>
+#include <variant>
+#include <filesystem>
+
+int __declspec(noinline) compute(int x) {
+    std::vector<int> v(10000);
+    std::iota(v.begin(), v.end(), 0);
+    std::shuffle(v.begin(), v.end(), std::mt19937(x));
+    std::sort(v.begin(), v.end());
+    auto it = std::unique(v.begin(), v.end());
+    return (int)std::distance(v.begin(), it) + VERSION_NUM;
+}
+SRCEOL
+          done
+
+      - name: 🟢 Build 1 — cold cache PCH=${{ matrix.pch }}
+        shell: bash
+        run: |
+          mkdir -p /tmp/t/b1 && cd /tmp/t/b1
+          cmake .. -DVERSION_NUM=1 -DPCH=${{ matrix.pch }}
+          cmake --build . --config Release --verbose 2>&1 | tail -5
+          echo "=== BUILD 1 (cold) ==="
+          ccache -s -v | grep -E "Hits|Misses|Cacheable|Cache size"
+
+      - name: 🟡 Build 2 — same source, warm cache PCH=${{ matrix.pch }}
+        shell: bash
+        run: |
+          mkdir -p /tmp/t/b2 && cd /tmp/t/b2
+          cmake .. -DVERSION_NUM=1 -DPCH=${{ matrix.pch }}
+          cmake --build . --config Release --verbose 2>&1 | tail -5
+          echo "=== BUILD 2 (warm, same VERSION_NUM) ==="
+          ccache -s -v | grep -E "Hits|Misses|Cacheable|Cache size"
+
+      - name: 🔴 Build 3 — version header changed PCH=${{ matrix.pch }}
+        shell: bash
+        run: |
+          mkdir -p /tmp/t/b3 && cd /tmp/t/b3
+          cmake .. -DVERSION_NUM=2 -DPCH=${{ matrix.pch }}
+          cmake --build . --config Release --verbose 2>&1 | tail -5
+          echo "=== BUILD 3 (different VERSION_NUM) ==="
+          ccache -s -v | grep -E "Hits|Misses|Cacheable|Cache size"
+
+      - name: 📊 Final
+        shell: bash
+        run: |
+          echo "=== CCACHE SUMMARY ==="
+          ccache -s | grep -E "Hits|Misses|Cacheable|Cache size|max cache"
