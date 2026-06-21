@@ -58,7 +58,9 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: build
-          key: cmake-build-win64-qt6-v1-${{ hashFiles('CMakeLists.txt', 'cmake/**', 'vcpkg/vcpkg.json', 'cmake/VcpkgToolchain.cmake', 'vcpkg/ports/**', '.github/workflows/windows-qt6-vcpkg.yml') }}
+          key: cmake-build-win64-qt6-v1
+          restore-keys: |
+            cmake-build-win64-qt6-v1-
 
       - name: 🛍️ Tune ccache configuration
         shell: bash
@@ -106,7 +108,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: build
-          key: cmake-build-win64-qt6-v1-${{ hashFiles('CMakeLists.txt', 'cmake/**', 'vcpkg/vcpkg.json', 'cmake/VcpkgToolchain.cmake', 'vcpkg/ports/**', '.github/workflows/windows-qt6-vcpkg.yml') }}
+          key: cmake-build-win64-qt6-v1
 
       - name: 🌋 Build
         shell: bash
