@@ -1,5 +1,5 @@
 ---
-name: 🪟 Windows Qt6 (vcpkg)
+name: 🪟 Windows Qt6 (vcpkg fast)
 on:
   workflow_dispatch:
 
@@ -53,6 +53,13 @@ jobs:
           key: build-ccache-win64-qt6-vcpkg-v1
           save: true
 
+      - name: 📦 Restore configured build directory
+        id: restore-build-dir
+        uses: actions/cache/restore@v4
+        with:
+          path: build
+          key: cmake-build-win64-qt6-v1-${{ hashFiles('CMakeLists.txt', 'cmake/**', 'vcpkg/vcpkg.json', 'cmake/VcpkgToolchain.cmake', 'vcpkg/ports/**', '.github/workflows/windows-qt6-vcpkg.yml') }}
+
       - name: 🛍️ Tune ccache configuration
         shell: bash
         run: |
@@ -60,6 +67,7 @@ jobs:
           ccache --set-config sloppiness=pch_defines,time_macros,include_file_mtime,include_file_ctime
 
       - name: 🌱 Install dependencies and generate project files
+        if: steps.restore-build-dir.outputs.cache-hit != 'true'
         id: cmake-configure
         shell: bash
         env:
@@ -93,6 +101,13 @@ jobs:
                 -D "NUGET_USERNAME=${GITHUB_ACTOR}" \
                 -D NUGET_TOKEN=${{ secrets.GITHUB_TOKEN }}
 
+      - name: 💾 Save configured build directory
+        if: steps.restore-build-dir.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: build
+          key: cmake-build-win64-qt6-v1-${{ hashFiles('CMakeLists.txt', 'cmake/**', 'vcpkg/vcpkg.json', 'cmake/VcpkgToolchain.cmake', 'vcpkg/ports/**', '.github/workflows/windows-qt6-vcpkg.yml') }}
+
       - name: 🌋 Build
         shell: bash
         run: |
@@ -108,7 +123,7 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: failure()
         with:
-          name: build-logs-x64-windows-vcpkg
+          name: build-logs-x64-windows-vcpkg-fast
           path: |
             C:/src/**/*.log
 
@@ -116,7 +131,7 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         id: artifact-win64-qt6
         with:
-          name: qgis-windows-qt6-vcpkg
+          name: qgis-windows-qt6-vcpkg-fast
           archive: false
           path: |
             build/*-win64.zip
