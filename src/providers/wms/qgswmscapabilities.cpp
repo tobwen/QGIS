@@ -86,7 +86,7 @@ bool QgsWmsSettings::parseUri( const QString &uriString )
 
     mIgnoreGetMapUrl = false;
     mIgnoreGetFeatureInfoUrl = false;
-    mSmoothPixmapTransform = mInterpretation.isEmpty();
+    mSmoothPixmapTransform = false;
     mDpiMode = DpiNone;                         // does not matter what we set here
     mActiveSubLayers = QStringList( u"xyz"_s ); // just a placeholder to have one sub-layer
     mActiveSubStyles = QStringList( u"xyz"_s ); // just a placeholder to have one sub-style
