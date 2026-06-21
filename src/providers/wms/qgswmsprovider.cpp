@@ -1110,6 +1110,9 @@ QImage QgsWmsProvider::draw( const QgsRectangle &viewExtent, int pixelWidth, int
     }
 
     // draw composite in this resolution
+    // QPainter::SmoothPixmapTransform only supports bilinear interpolation;
+    // Cubic/CubicSpline/etc. settings silently use bilinear at the tile level.
+    const bool useSmoothPixmapTransform = mSettings.mSmoothPixmapTransform || zoomedInResamplingMethod() != Qgis::RasterResamplingMethod::Nearest;
     for ( const TileImage &ti : std::as_const( tileImages ) )
     {
       if ( feedback && feedback->isCanceled() )
@@ -1118,7 +1121,7 @@ QImage QgsWmsProvider::draw( const QgsRectangle &viewExtent, int pixelWidth, int
         return image;
       }
 
-      if ( ti.smooth && mSettings.mSmoothPixmapTransform )
+      if ( ti.smooth && useSmoothPixmapTransform )
         p.setRenderHint( QPainter::SmoothPixmapTransform, true );
       p.drawImage( ti.rect, ti.img );
 
@@ -1151,7 +1154,7 @@ QImage QgsWmsProvider::draw( const QgsRectangle &viewExtent, int pixelWidth, int
       std::sort( requestsFinal.begin(), requestsFinal.end(), cmp );
 
       QgsWmsTiledImageDownloadHandler
-        handler( dataSourceUri(), mSettings.authorization(), mTileReqNo, requestsFinal, &image, effectiveViewExtent, sourceResolution, mSettings.mSmoothPixmapTransform, mProviderResamplingEnabled, feedback );
+        handler( dataSourceUri(), mSettings.authorization(), mTileReqNo, requestsFinal, &image, effectiveViewExtent, sourceResolution, useSmoothPixmapTransform, mProviderResamplingEnabled, feedback );
 
       handler.downloadBlocking();
 
