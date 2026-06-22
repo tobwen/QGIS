@@ -151,10 +151,21 @@ QgsRasterBlock *QgsRasterResampleFilter::block( int bandNo, QgsRectangle const &
     }
     else
     {
-      // We don't know exact data source resolution (WMS) so we expect that
-      // server data have higher resolution (which is not always true) and use
-      // mMaxOversampling
-      oversampling = mMaxOversampling;
+      // For providers with discrete zoom levels, retrieving data at a finer
+      // resolution requests a different zoom level (different labels, generalization,
+      // feature selection), not a higher-resolution version of the same content.
+      // Oversampling is semantically incorrect — override to 1.0.
+      if ( provider && provider->nativeResolutions().size() > 0 )
+      {
+        oversampling = 1.0;
+      }
+      else
+      {
+        // We don't know exact data source resolution (WMS) so we expect that
+        // server data have higher resolution (which is not always true) and use
+        // mMaxOversampling
+        oversampling = mMaxOversampling;
+      }
     }
   }
 
